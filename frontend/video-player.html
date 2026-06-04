@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Netflix Clone - Video Player</title>
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: black; overflow: hidden; font-family: 'Helvetica Neue', Arial, sans-serif; }
+        .video-container { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; background: black; }
+        
+        /* YouTube IFrame and HTML5 Video full screen forced styling */
+        #player, video { 
+            position: absolute;
+            top: 0; left: 0;
+            width: 100vw; 
+            height: 100vh; 
+            object-fit: cover;
+            border: none;
+            outline: none;
+        }
+        
+        .progress-bar { width: 100%; height: 5px; background: rgba(255,255,255,0.3); cursor: pointer; border-radius: 2px; position: relative; }
+        .progress-filled { height: 100%; background: #e50914; width: 0%; border-radius: 2px; }
+        
+        .controls-row { display: flex; align-items: center; justify-content: space-between; color: white; }
+        .controls-left { display: flex; align-items: center; gap: 20px; }
+        .btn-control { background: none; border: none; color: white; cursor: pointer; font-size: 24px; padding: 5px; }
+        .btn-control:hover { transform: scale(1.1); }
+        .volume-slider { width: 100px; cursor: pointer; }
+        .movie-title { font-size: 1.2rem; font-weight: bold; position: absolute; top: 20px; left: 20px; color: white; opacity: 0; transition: opacity 0.3s; }
+        .video-container:hover .movie-title { opacity: 1; }
+        .back-btn { position: absolute; top: 20px; right: 20px; font-size: 30px; color: white; text-decoration: none; z-index: 100; }
+    </style>
+</head>
+<body>
+    <div class="video-container" id="video-container">
+        <a href="dashboard.html" class="back-btn" id="back-btn">&times;</a>
+        <div class="movie-title" id="player-title">Loading...</div>
+        
+        <!-- YouTube IFrame API will replace this div -->
+        <div id="player"></div>
+        
+    </div>
+    
+    <script>
+        // YouTube IFrame API will be loaded in initPlayer()
+
+        var player;
+        var videoId = 'hXzvdSyIgwc'; // Fallback
+        var movieId = new URLSearchParams(window.location.search).get('id');
+        var API_BASE = 'http://127.0.0.1:5000/api';
+        var token = localStorage.getItem('token');
+        var playType = new URLSearchParams(window.location.search).get('type') || 'trailer';
+
+        async function fetchMovieData() {
+            if (movieId) {
+                try {
+                    const res = await fetch(`${API_BASE}/movies/${movieId}`);
+                    if (res.ok) {
+                        const movie = await res.json();
+                        document.getElementById('player-title').textContent = movie.title + (playType === 'movie' ? ' (Full Movie)' : ' (Trailer)');
+                        if (movie.videoUrl) {
+                            videoId = movie.videoUrl;
+                        }
+                    }
+                } catch(e) { console.error(e); }
+            }
+        }
+
+        async function initPlayer() {
+            await fetchMovieData();
+
+            if (playType === 'movie') {
+                // Play HTML5 Demo Full Movie
+                document.getElementById('player').outerHTML = `
+                    <video id="video-player" controls autoplay style="width: 100vw; height: 100vh; object-fit: cover;">
+                        <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
+                    </video>
+                `;
+                var vid = document.getElementById('video-player');
+                // Fake history tracking
+                setInterval(() => {
+                    if(!vid.paused && vid.currentTime > 0) saveHistoryHTML5(vid);
+                }, 10000);
+            } else {
+                // Play YouTube Trailer
+                var tag = document.createElement('script');
+                tag.src = "https://www.youtube.com/iframe_api";
+                var firstScriptTag = document.getElementsByTagName('script')[0];
+                firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+            }
+        }
+        
+        initPlayer();
+
+        // This function is called automatically by YouTube IFrame API when it's ready
+        window.onYouTubeIframeAPIReady = function() {
+            player = new YT.Player('player', {
+                height: '100%',
+                width: '100%',
+                videoId: videoId,
+                playerVars: {
+                    'autoplay': 1,
+                    'controls': 1,
+                    'modestbranding': 1,
+                    'rel': 0,
+                    'showinfo': 0,
+                    'fs': 1
+                },
+                events: {
+                    'onReady': onPlayerReady,
+                    'onStateChange': onPlayerStateChange
+                }
+            });
+        };
+
+        function onPlayerReady(event) {
+            event.target.playVideo();
+            // Start history tracking
+            setInterval(saveHistory, 10000); // Save every 10 seconds
+        }
+
+        function onPlayerStateChange(event) {
+            if (event.data == YT.PlayerState.ENDED) {
+                window.location.href = 'dashboard.html';
+            }
+        }
+
+        async function saveHistory() {
+            if (!player || !player.getCurrentTime || !movieId || !currentUser) return;
+            const currentTime = player.getCurrentTime();
+            const duration = player.getDuration();
+            postHistory(currentTime, duration);
+        }
+
+        async function saveHistoryHTML5(vid) {
+            if (!vid || !movieId || !currentUser) return;
+            postHistory(vid.currentTime, vid.duration);
+        }
+
+        async function postHistory(currentTime, duration) {
+            if (duration > 0) {
+                const progress = Math.min(100, Math.round((currentTime / duration) * 100));
+                if (progress > 5) { // Only save if watched at least a bit
+                    try {
+                        await fetch(`${API_BASE}/history`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                            body: JSON.stringify({ userId: currentUser._id, movieId: movieId, progress: progress })
+                        });
+                    } catch(e) { console.error(e); }
+                }
+            }
+        }
+    </script>
+    <script src="js/script.js"></script>
+
+    <div id="branding-modals">
+        <div id="contactModal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(0,0,0,0.95); border:1px solid #333; padding:40px; z-index:9999; border-radius:8px; text-align:center; min-width:300px;">
+            <h2 style="color:white; margin-bottom:20px;">Contact Us</h2>
+            <p style="color:#b3b3b3; margin-bottom:10px;">Name: <span style="color:white;">Vamsi</span></p>
+            <p style="color:#b3b3b3; margin-bottom:10px;">Email: <a href="mailto:vamsiukkusuri@gmail.com" style="color:#e50914;">vamsiukkusuri@gmail.com</a></p>
+            <p style="color:#b3b3b3; margin-bottom:30px;">Phone: <span style="color:white;">+91 8885427136</span></p>
+            <button onclick="document.getElementById('contactModal').style.display='none'" style="background:#e50914; color:white; border:none; padding:10px 20px; border-radius:4px; cursor:pointer;">Close</button>
+        </div>
+        
+        <div id="aboutModal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(0,0,0,0.95); border:1px solid #333; padding:40px; z-index:9999; border-radius:8px; text-align:center; max-width:400px;">
+            <h2 style="color:white; margin-bottom:20px;">About</h2>
+            <p style="color:#b3b3b3; margin-bottom:30px; line-height:1.6;">This Netflix Clone project was developed and maintained by Vamsi for educational and portfolio purposes.</p>
+            <button onclick="document.getElementById('aboutModal').style.display='none'" style="background:#e50914; color:white; border:none; padding:10px 20px; border-radius:4px; cursor:pointer;">Close</button>
+        </div>
+    </div>
+    <script>
+        function showContactModal(e) { e.preventDefault(); document.getElementById('contactModal').style.display='block'; }
+        function showAboutModal(e) { e.preventDefault(); document.getElementById('aboutModal').style.display='block'; }
+    </script>
+
+</body>
+</html>
