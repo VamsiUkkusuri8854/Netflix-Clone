@@ -15,7 +15,7 @@
 }
 
 body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Outfit', 'Helvetica Neue', Helvetica, Arial, sans-serif;
     background-color: var(--dark-bg);
     color: var(--light-text);
     overflow-x: hidden;
@@ -245,8 +245,7 @@ footer {
 
 /* Auth Pages */
 .auth-body {
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0, rgba(0, 0, 0, 0.4) 60%, rgba(0, 0, 0, 0.8) 100%),
-                url('https://assets.nflxext.com/ffe/siteui/vlv3/9d3533b2-0e2b-40b2-95e0-eca79792881b/a33746b1-294d-4ae5-8f51-cb8e5041085c/US-en-20240320-popsignuptwoweeks-perspective_alpha_website_large.jpg') center/cover no-repeat;
+    background: linear-gradient(135deg, #0f0000 0%, #3a0000 50%, #000000 100%);
     height: 100vh;
     display: flex;
     flex-direction: column;
@@ -265,9 +264,13 @@ footer {
 }
 
 .auth-card {
-    background-color: rgba(0, 0, 0, 0.75);
-    padding: 60px 68px;
-    border-radius: 4px;
+    background: rgba(20, 0, 0, 0.4);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(229, 9, 20, 0.3);
+    box-shadow: 0 8px 32px 0 rgba(229, 9, 20, 0.15);
+    padding: 50px 60px;
+    border-radius: 12px;
     width: 100%;
     max-width: 450px;
 }
@@ -291,16 +294,19 @@ footer {
 .form-group input {
     width: 100%;
     padding: 16px 20px;
-    background: #333;
-    border: 1px solid #333;
-    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
     color: white;
     font-size: 1rem;
+    transition: all 0.2s ease;
 }
 
 .form-group input:focus {
     outline: none;
-    background: #454545;
+    background: rgba(0, 0, 0, 0.8);
+    border-color: var(--primary-color);
+    box-shadow: 0 0 8px rgba(229, 9, 20, 0.4);
 }
 
 .form-group .error-text {
