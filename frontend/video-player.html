@@ -48,7 +48,7 @@
         var player;
         var videoId = 'hXzvdSyIgwc'; // Fallback
         var movieId = new URLSearchParams(window.location.search).get('id');
-        var API_BASE = 'http://127.0.0.1:5000/api';
+        var API_BASE = '/api';
         var token = localStorage.getItem('token');
         var playType = new URLSearchParams(window.location.search).get('type') || 'trailer';
 
